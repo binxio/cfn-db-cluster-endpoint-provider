@@ -8,8 +8,8 @@ Resources:
   Project:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: cfn-secret-provider
-      Description: 'cfn-secret-provider builder'
+      Name: cfn-db-cluster-endpoint-provider
+      Description: 'cfn-db-cluster-endpoint-provider builder'
       ServiceRole: !Ref 'ProjectRole'
       Artifacts:
         Type: no_artifacts
@@ -27,7 +27,7 @@ Resources:
             Type: PLAINTEXT
       Source:
         Type: GITHUB
-        Location: https://github.com/binxio/cfn-secret-provider.git
+        Location: https://github.com/binxio/cfn-db-cluster-endpoint-provider.git
         BuildSpec: .buildspec.yaml
         GitCloneDepth: 0
       Triggers:
@@ -65,7 +65,7 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectAcl
                 Resource: 
-                  - !Sub 'arn:aws:s3:::${S3BucketPrefix}-*/lambdas/cfn-secret-provider-*'
+                  - !Sub 'arn:aws:s3:::${S3BucketPrefix}-*/lambdas/cfn-db-cluster-endpoint-provider-*'
               - Effect: Allow
                 Action:
                   - ec2:DescribeRegions
