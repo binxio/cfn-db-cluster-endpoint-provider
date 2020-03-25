@@ -14,7 +14,7 @@ Resources:
       Description: CloudFormation Custom:DBClusterEndpoint implementation
       Code:
         S3Bucket: !Sub '${S3BucketPrefix}-${AWS::Region}'
-        S3Key: 'lambdas/cfn-db-cluster-endpoint-provider-0.1.0-8363866.zip'
+        S3Key: 'lambdas/cfn-db-cluster-endpoint-provider-0.1.1.zip'
       FunctionName: 'binxio-cfn-db-cluster-endpoint-provider'
       Handler: db_cluster_endpoint_provider.handler
       MemorySize: 128
