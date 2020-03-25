@@ -1,0 +1,58 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Secret Provider
+Parameters:
+  S3BucketPrefix:
+    Type: String
+    Default: 'binxio-public'
+Resources:
+  CFNCustomProvider:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - LambdaRole
+    Properties:
+      Description: CloudFormation Custom:DBClusterEndpoint implementation
+      Code:
+        S3Bucket: !Sub '${S3BucketPrefix}-${AWS::Region}'
+        S3Key: 'lambdas/cfn-db-cluster-endpoint-provider-0.1.0-8363866.zip'
+      FunctionName: 'binxio-cfn-db-cluster-endpoint-provider'
+      Handler: db_cluster_endpoint_provider.handler
+      MemorySize: 128
+      Timeout: 900
+      Role: !GetAtt 'LambdaRole.Arn'
+      Runtime: python3.7
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CFNDBClusterEndpointProvider
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - rds:CreateDBClusterEndpoint
+                  - rds:DescribeDBClusterEndpoints
+                  - rds:ModifyDBClusterEndpoint
+                  - rds:DeleteDBClusterEndpoint
+                Effect: Allow
+                Resource:
+                  - '*'
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${CFNCustomProvider}'
+      RetentionInDays: 7
+

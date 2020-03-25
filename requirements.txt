@@ -1,0 +1,2 @@
+boto
+cfn_resource_provider
