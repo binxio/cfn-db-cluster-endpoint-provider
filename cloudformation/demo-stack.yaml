@@ -137,4 +137,4 @@ Outputs:
   Endpoint:
     Value: !GetAtt ReaderEndpoint.Endpoint
   EndpointArn:
-    Value: !GetAtt ReaderEndpoint.Arn
+    Value: !Ref ReaderEndpoint
