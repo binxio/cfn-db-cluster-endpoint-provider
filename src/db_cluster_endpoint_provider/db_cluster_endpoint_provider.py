@@ -9,8 +9,8 @@ request_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "properties": {
-        "DBClusterIdentifier": {"type": "string", "pattern": "[a-z0-9\-_]+"},
-        "DBClusterEndpointIdentifier": {"type": "string", "pattern": "[a-z0-9\-_]+"},
+        "DBClusterIdentifier": {"type": "string", "pattern": "[a-z0-9\\-_]+"},
+        "DBClusterEndpointIdentifier": {"type": "string", "pattern": "[a-z0-9\\-_]+"},
         "EndpointType": {"type": "string", "enum": ["READER", "WRITER", "ANY"]},
         "StaticMembers": {"type": "array", "items": [{"type": "string"}]},
         "ExcludedMembers": {"type": "array", "items": [{"type": "string"}]},
@@ -35,23 +35,27 @@ request_schema = {
 class DBClusterEndpointProvider(ResourceProvider):
     def __init__(self):
         super(DBClusterEndpointProvider, self).__init__()
+        self.sleep_period_in_seconds = 5
         self.request_schema = request_schema
         self.rds = boto3.client("rds")
-        self.updatable_properties = set(["EndpointType", "StaticMembers", "ExcludedMembers"])
+        self.updatable_properties = set(
+            ["EndpointType", "StaticMembers", "ExcludedMembers"]
+        )
 
-    def wait_until_completed(self, response, status:str) -> bool :
+    def wait_until_completed(self, response, status: str) -> bool:
         arn = response["DBClusterEndpointArn"]
         db_cluster_endpoint_identifier = response["DBClusterEndpointIdentifier"]
 
         while response["Status"] == status:
             log.info(
-                "cluster endpoint %s is in state %s, waiting 5s",
+                "cluster endpoint %s is in state %s, waiting %ss",
                 arn,
                 response["Status"],
+                self.sleep_period_in_seconds
             )
-            sleep(5)
+            sleep(self.sleep_period_in_seconds)
             endpoints = self.rds.describe_db_cluster_endpoints(
-                DBClusterEndpointIdentifier=db_cluster_endpoint_identifier,
+                DBClusterEndpointIdentifier=db_cluster_endpoint_identifier
             )
             if not endpoints["DBClusterEndpoints"]:
                 if status == "deleting":
@@ -64,7 +68,6 @@ class DBClusterEndpointProvider(ResourceProvider):
 
             response = endpoints["DBClusterEndpoints"][0]
         return True
-
 
     def create(self):
         kwargs = copy(self.properties)
@@ -90,7 +93,9 @@ class DBClusterEndpointProvider(ResourceProvider):
         changes = self.changed_properties()
         immutables = self.changed_properties().difference(self.updatable_properties)
         if immutables:
-            self.fail(f"these properties cannot be updated: {', '.join(immutables)}")
+            self.fail(
+                "these properties cannot be updated: {}".format(", ".join(sorted(immutables)))
+            )
             return
 
         if not changes:
@@ -106,20 +111,25 @@ class DBClusterEndpointProvider(ResourceProvider):
         self.wait_until_completed(response, "modifying")
 
     def delete(self):
-        if self.physical_resource_id == 'could-not-create':
-            self.success('db cluster endpoint was never created')
+        if self.physical_resource_id == "could-not-create":
+            self.success("db cluster endpoint was never created")
             return
 
         try:
-            response = self.rds.delete_db_cluster_endpoint(DBClusterEndpointIdentifier=self.db_cluster_identifier)
+            response = self.rds.delete_db_cluster_endpoint(
+                DBClusterEndpointIdentifier=self.db_cluster_identifier
+            )
             self.wait_until_completed(response, "deleting")
         except ClientError as e:
-            msg = f'failed to delete db cluster endpoint {self.db_cluster_identifier}'
-            log.error(f'failed to delete db cluster endpoint {self.db_cluster_identifier}, {e}')
+            msg = f"failed to delete db cluster endpoint {self.db_cluster_identifier}"
+            log.error(
+                f"failed to delete db cluster endpoint {self.db_cluster_identifier}, {e}"
+            )
             self.success(msg)
 
 
 provider = DBClusterEndpointProvider()
+
 
 def handler(request, context):
     return provider.handle(request, context)
