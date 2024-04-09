@@ -11,6 +11,3 @@ botostubs = "*"
 [packages]
 boto3 = "*"
 cfn-resource-provider = "*"
-
-[requires]
-python_version = "3.7"
